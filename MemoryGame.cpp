@@ -1,115 +1,105 @@
-#include "AnimationWindow.h"  // Inkluderer den fulle definisjonen av AnimationWindow
-#include "MemoryGame.h"       // Inkluderer header-filen for MemoryGame-klassen
+#include "MemoryGame.h"
+#include <algorithm>
+#include <random>
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+#include <SDL.h>
 
-#include <algorithm>          // For std::shuffle
-#include <random>             // For tilfeldighetsgenerator
-#include <fstream>            // For filhåndtering
-#include <iostream>           // For input/output
-#include <stdexcept>          // For unntakshåndtering
+namespace TDT4102 {
 
-// Konstruktør for MemoryGame, initialiserer grid-størrelse, kortdimensjoner og kaller initGame og loadGameData
-MemoryGame::MemoryGame() : gridRows(4), gridCols(4), cardWidth(100), cardHeight(100) {
-    initGame();        // Initialiserer spillbrettet
-    loadGameData();    // Leser evt. spilldata fra fil
+MemoryGame::MemoryGame() 
+    : gridRows(2), gridCols(4), cardWidth(100), cardHeight(100), revealTime(0), attempts(0)
+{
+    initGame();
 }
 
-// Funksjon for å initialisere eller tilbakestille spillet
 void MemoryGame::initGame() {
-    cards.clear();  // Fjerner eksisterende kort, hvis noen
-    
-    // Oppretter 8 par (16 kort totalt) med verdier 0 til 7
+    cards.clear();
+    // Oppretter 4 par (8 kort totalt) med verdier 0 til 3
     for (int i = 0; i < (gridRows * gridCols) / 2; ++i) {
-        cards.push_back(Card(i));  // Legger til første kort i paret
-        cards.push_back(Card(i));  // Legger til andre kort i paret
+        cards.push_back(Card(i));
+        cards.push_back(Card(i));
     }
-    
-    // Stokker kortene for å plassere dem tilfeldig i rutenettet
+    // Stokker kortene
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(cards.begin(), cards.end(), g);
 }
 
-// Funksjon for filhåndtering. Leser spilldata fra "game_data.txt" om filen finnes.
-void MemoryGame::loadGameData() {
-    std::ifstream infile("game_data.txt");
-    if (!infile) {
-        std::cerr << "Warning: game_data.txt ikke funnet. Bruker standardinnstillinger." << std::endl;
-        return;
-    }
-    int dummy;
-    infile >> dummy;
-    if (infile.fail()) {
-        throw std::runtime_error("Feil ved lesing av game_data.txt");
+void MemoryGame::update() {
+    if (selectedIndices.size() == 2 && revealTime != 0) {
+        Uint32 currentTime = SDL_GetTicks();
+        if (currentTime - revealTime >= 500) {
+            int firstIndex = selectedIndices[0];
+            int secondIndex = selectedIndices[1];
+            if (cards[firstIndex].getValue() == cards[secondIndex].getValue()) {
+                cards[firstIndex].setMatched();
+                cards[secondIndex].setMatched();
+            } else {
+                cards[firstIndex].hide();
+                cards[secondIndex].hide();
+            }
+            selectedIndices.clear();
+            revealTime = 0;
+        }
     }
 }
 
-// Funksjon for å tegne kortene i vinduet
 void MemoryGame::drawCards(AnimationWindow &window) {
-    // Går gjennom alle rader og kolonner i rutenettet
+    int margin = 20; // Margin mellom kortene
+    int availableWidth = window.width() - (gridCols + 1) * margin;
+    int availableHeight = window.height() - (gridRows + 60); // Reservér 60 piksler for feedback-tekst
+    int cardW = availableWidth / gridCols;
+    int cardH = availableHeight / gridRows;
+    
     for (int i = 0; i < gridRows; ++i) {
         for (int j = 0; j < gridCols; ++j) {
-            int index = i * gridCols + j;  // Beregner indeks for kortet
-            int x = j * cardWidth;         // Kalkulerer x-koordinat for kortet
-            int y = i * cardHeight;        // Kalkulerer y-koordinat for kortet
-            
-            // Dersom kortet er avslørt eller allerede matchet, skal kortets verdi vises med en farge
+            int index = i * gridCols + j;
+            int x = margin + j * (cardW + margin);
+            int y = margin + i * (cardH + margin);
             if (cards[index].isRevealed() || cards[index].isMatched()) {
                 int value = cards[index].getValue();
-                // Kalkulerer en farge basert på kortets verdi
-                int r = (value * 50) % 256;
-                int g = (value * 80) % 256;
-                int b = (value * 110) % 256;
-                // Tegn et fylt rektangel med beregnet farge og en svart kant
-                window.draw_rectangle(TDT4102::Point(x, y), cardWidth, cardHeight,
-                                      TDT4102::Color(r, g, b), TDT4102::Color(0, 0, 0));
+                Color cardColor;
+                // Velg farge basert på kortets verdi:
+                // 0 -> blå, 1 -> rød, 2 -> grønn, 3 -> rosa
+                if (value == 0)
+                    cardColor = Color(0, 0, 255);
+                else if (value == 1)
+                    cardColor = Color(255, 0, 0);
+                else if (value == 2)
+                    cardColor = Color(0, 255, 0);
+                else if (value == 3)
+                    cardColor = Color(255, 192, 203);
+                window.draw_rounded_rectangle(Point(x, y), cardW, cardH, 20, cardColor, Color(0, 0, 0));
             } else {
-                // Dersom kortet er skjult, tegnes et rektangel med grå farge og svart kant
-                window.draw_rectangle(TDT4102::Point(x, y), cardWidth, cardHeight,
-                                      TDT4102::Color(100, 100, 100), TDT4102::Color(0, 0, 0));
+                window.draw_rounded_rectangle(Point(x, y), cardW, cardH, 20, Color(100, 100, 100), Color(0, 0, 0));
             }
         }
     }
 }
 
-// Funksjon for å håndtere museklikk. Den finner hvilket kort som er klikket på og håndterer logikken.
 void MemoryGame::processClick(int mouseX, int mouseY) {
-    int col = mouseX / cardWidth;
-    int row = mouseY / cardHeight;
-    
-    // Sjekk at museklikket er innenfor rutenettet
-    if (col >= gridCols || row >= gridRows)
+    int margin = 20;
+    int availableWidth = 800 - (gridCols + 1) * margin;  // Antatt vindusbredde (brukes kun for beregning)
+    int availableHeight = 600 - (gridRows + 60);         // Antatt vindushøyde, med plass til feedback
+    int cardW = availableWidth / gridCols;
+    int cardH = availableHeight / gridRows;
+    int col = (mouseX - margin) / (cardW + margin);
+    int row = (mouseY - margin) / (cardH + margin);
+    if (col < 0 || col >= gridCols || row < 0 || row >= gridRows)
         return;
-    
     int index = row * gridCols + col;
-    // Ignorer klikk hvis kortet allerede er avslørt eller matchet
     if (cards[index].isRevealed() || cards[index].isMatched())
         return;
-    
     cards[index].reveal();
     selectedIndices.push_back(index);
-    
-    // Hvis to kort er valgt, sjekk om de matcher
-    if (selectedIndices.size() == 2) {
-        checkMatch();
+    if (selectedIndices.size() == 2 && revealTime == 0) {
+         revealTime = SDL_GetTicks();
+         attempts++;  // Øk forsøk når to kort er valgt
     }
 }
 
-// Privat funksjon for å sjekke om de to valgte kortene matcher
-void MemoryGame::checkMatch() {
-    int firstIndex = selectedIndices[0];
-    int secondIndex = selectedIndices[1];
-    
-    if (cards[firstIndex].getValue() == cards[secondIndex].getValue()) {
-        cards[firstIndex].setMatched();
-        cards[secondIndex].setMatched();
-    } else {
-        cards[firstIndex].hide();
-        cards[secondIndex].hide();
-    }
-    selectedIndices.clear();
-}
-
-// Funksjon for å sjekke om spillet er over (alle kort er matchet)
 bool MemoryGame::isGameOver() const {
     for (const auto &card : cards) {
         if (!card.isMatched())
@@ -117,3 +107,16 @@ bool MemoryGame::isGameOver() const {
     }
     return true;
 }
+
+void MemoryGame::drawFeedback(AnimationWindow &window) {
+    std::string feedback;
+    if (isGameOver()) {
+        feedback = "Gratulerer, du klarte det paa " + std::to_string(attempts) + " forsok!";
+    } else {
+        feedback = "Antall forsok: " + std::to_string(attempts);
+    }
+    // Tegn feedback-teksten nederst i vinduet, med litt margin fra bunnen
+    window.draw_text(Point(20, window.height() - 20), feedback, Color(255, 255, 255), 24, Font::arial);
+}
+
+} // namespace TDT4102
