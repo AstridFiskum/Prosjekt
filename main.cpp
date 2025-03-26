@@ -6,7 +6,7 @@
 
 int main() {
     try {
-        // Opprett et vindu med størrelse 800x600
+        // Opprett et større vindu, f.eks. 800x600, slik at kortene fyller plassen
         TDT4102::AnimationWindow window(200, 100, 800, 600, "Memory Game");
         TDT4102::MemoryGame game;
         
@@ -23,9 +23,9 @@ int main() {
             }
             mouseWasDown = mouseDown;
             
+            // Oppdater spilltilstanden (sjekk om 500 ms har passert for to valgte kort)
             game.update();
             game.drawCards(window);
-            game.drawFeedback(window);
             window.next_frame();
             SDL_Delay(16);
         }

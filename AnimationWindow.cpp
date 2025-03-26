@@ -1,10 +1,9 @@
 #include "AnimationWindow.h"
-#include "Point.h"   // For Point
+#include "Point.h"     // For Point
 #include <SDL.h>
-#include <SDL_ttf.h>
 #include <iostream>
 #include <stdexcept>
-#include <cmath>
+#include <cmath>       // For pow()
 
 namespace TDT4102 {
 
@@ -12,10 +11,6 @@ AnimationWindow::AnimationWindow(int x, int y, int width, int height, const std:
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
         throw std::runtime_error("SDL initialization failed");
-    }
-    if (TTF_Init() == -1) {
-        std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
-        throw std::runtime_error("TTF initialization failed");
     }
     windowHandle = SDL_CreateWindow(title.c_str(), x, y, width, height, SDL_WINDOW_SHOWN);
     if (!windowHandle) {
@@ -34,7 +29,6 @@ AnimationWindow::AnimationWindow(int x, int y, int width, int height, const std:
 AnimationWindow::~AnimationWindow() {
     if (rendererHandle) SDL_DestroyRenderer(rendererHandle);
     if (windowHandle) SDL_DestroyWindow(windowHandle);
-    TTF_Quit();
     SDL_Quit();
 }
 
@@ -125,7 +119,7 @@ void AnimationWindow::draw_rounded_rectangle(Point topLeftPoint, int width, int 
     SDL_RenderFillRect(rendererHandle, &leftRect);
     SDL_RenderFillRect(rendererHandle, &rightRect);
     
-    // Tegn fire quarter-sirkler i hjørnene
+    // Tegn de fire quarter-sirkler for hjørnene
     for (int dy = 0; dy < radius; dy++) {
         for (int dx = 0; dx < radius; dx++) {
             if (dx * dx + dy * dy <= radius * radius) {
@@ -140,7 +134,7 @@ void AnimationWindow::draw_rounded_rectangle(Point topLeftPoint, int width, int 
             }
         }
     }
-    // Tegn outline rundt hele rektangelet
+    // Tegn outline rundt hele formen
     SDL_Rect outline = { topLeftPoint.x, topLeftPoint.y, width, height };
     SDL_SetRenderDrawColor(rendererHandle, borderColor.redChannel, borderColor.greenChannel, borderColor.blueChannel, borderColor.alphaChannel);
     SDL_RenderDrawRect(rendererHandle, &outline);
@@ -151,36 +145,7 @@ void AnimationWindow::draw_image(Point topLeftPoint, Image& image, int imageWidt
 }
 
 void AnimationWindow::draw_text(Point bottomLeftPoint, std::string textToShow, Color color, unsigned int fontSize, Font font) {
-    // Bruk SDL_ttf for å tegne tekst
-    TTF_Font* sdlFont = TTF_OpenFont("arial.ttf", fontSize);
-    if (!sdlFont) {
-        std::cerr << "TTF_OpenFont error: " << TTF_GetError() << std::endl;
-        return;
-    }
-    SDL_Color sdlColor = { color.redChannel, color.greenChannel, color.blueChannel, color.alphaChannel };
-    SDL_Surface* surface = TTF_RenderText_Solid(sdlFont, textToShow.c_str(), sdlColor);
-    if (!surface) {
-        std::cerr << "TTF_RenderText_Solid error: " << TTF_GetError() << std::endl;
-        TTF_CloseFont(sdlFont);
-        return;
-    }
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(rendererHandle, surface);
-    if (!texture) {
-        std::cerr << "SDL_CreateTextureFromSurface error: " << SDL_GetError() << std::endl;
-        SDL_FreeSurface(surface);
-        TTF_CloseFont(sdlFont);
-        return;
-    }
-    SDL_Rect destRect;
-    destRect.x = bottomLeftPoint.x;
-    // Vi tolker bottomLeftPoint som bunnen av teksten, så vi flytter opp med tekstens høyde
-    destRect.y = bottomLeftPoint.y - surface->h;
-    destRect.w = surface->w;
-    destRect.h = surface->h;
-    SDL_RenderCopy(rendererHandle, texture, NULL, &destRect);
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
-    TTF_CloseFont(sdlFont);
+    // Stub: Implementer teksttegning om ønskelig
 }
 
 void AnimationWindow::draw_line(Point start, Point end, Color color) {

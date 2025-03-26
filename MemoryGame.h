@@ -10,10 +10,9 @@ class MemoryGame {
 public:
     MemoryGame();
     void initGame();
-    void update();            // Oppdaterer spilltilstanden etter kortvalg
     void drawCards(AnimationWindow &window);
     void processClick(int mouseX, int mouseY);
-    void drawFeedback(AnimationWindow &window); // Tegner live feedback nederst i vinduet
+    void update(); // Ny metode for å oppdatere kortenes tilstand etter en forsinkelse
     bool isGameOver() const;
 private:
     std::vector<Card> cards;
@@ -22,8 +21,8 @@ private:
     int gridCols;
     int cardWidth;
     int cardHeight;
-    Uint32 revealTime = 0;    // Tidspunkt for når to kort ble valgt
-    int attempts = 0;         // Antall forsøk (hver gang to kort velges)
+    Uint32 revealTime = 0; // Tidspunkt når to kort ble valgt
+    void checkMatch();
 };
 
 } // namespace TDT4102

@@ -1,27 +1,16 @@
-#include "Card.h"
+#pragma once
 
-Card::Card(int value) : value(value), revealed(false), matched(false) {}
-
-void Card::reveal() {
-    revealed = true;
-}
-
-void Card::hide() {
-    revealed = false;
-}
-
-bool Card::isRevealed() const {
-    return revealed;
-}
-
-bool Card::isMatched() const {
-    return matched;
-}
-
-void Card::setMatched() {
-    matched = true;
-}
-
-int Card::getValue() const {
-    return value;
-}
+class Card {
+public:
+    Card(int value);
+    void reveal();
+    void hide();
+    bool isRevealed() const;
+    bool isMatched() const;
+    void setMatched();
+    int getValue() const;
+private:
+    int value;
+    bool revealed;
+    bool matched;
+};

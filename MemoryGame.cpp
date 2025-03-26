@@ -9,8 +9,7 @@
 namespace TDT4102 {
 
 MemoryGame::MemoryGame() 
-    : gridRows(2), gridCols(4), cardWidth(100), cardHeight(100), revealTime(0), attempts(0)
-{
+    : gridRows(2), gridCols(4), cardWidth(100), cardHeight(100) {
     initGame();
 }
 
@@ -28,6 +27,7 @@ void MemoryGame::initGame() {
 }
 
 void MemoryGame::update() {
+    // Hvis to kort er valgt og vi har startet en timer
     if (selectedIndices.size() == 2 && revealTime != 0) {
         Uint32 currentTime = SDL_GetTicks();
         if (currentTime - revealTime >= 500) {
@@ -47,12 +47,12 @@ void MemoryGame::update() {
 }
 
 void MemoryGame::drawCards(AnimationWindow &window) {
-    int margin = 20; // Margin mellom kortene
+    // Beregn kortstørrelse dynamisk slik at de fyller vinduet
+    int margin = 20;
     int availableWidth = window.width() - (gridCols + 1) * margin;
-    int availableHeight = window.height() - (gridRows + 60); // Reservér 60 piksler for feedback-tekst
+    int availableHeight = window.height() - (gridRows + 1) * margin;
     int cardW = availableWidth / gridCols;
     int cardH = availableHeight / gridRows;
-    
     for (int i = 0; i < gridRows; ++i) {
         for (int j = 0; j < gridCols; ++j) {
             int index = i * gridCols + j;
@@ -60,20 +60,20 @@ void MemoryGame::drawCards(AnimationWindow &window) {
             int y = margin + i * (cardH + margin);
             if (cards[index].isRevealed() || cards[index].isMatched()) {
                 int value = cards[index].getValue();
-                Color cardColor;
-                // Velg farge basert på kortets verdi:
+                TDT4102::Color cardColor;
+                // Bestem farge basert på kortets verdi:
                 // 0 -> blå, 1 -> rød, 2 -> grønn, 3 -> rosa
                 if (value == 0)
-                    cardColor = Color(0, 0, 255);
+                    cardColor = TDT4102::Color(0, 0, 255);
                 else if (value == 1)
-                    cardColor = Color(255, 0, 0);
+                    cardColor = TDT4102::Color(255, 0, 0);
                 else if (value == 2)
-                    cardColor = Color(0, 255, 0);
+                    cardColor = TDT4102::Color(0, 255, 0);
                 else if (value == 3)
-                    cardColor = Color(255, 192, 203);
-                window.draw_rounded_rectangle(Point(x, y), cardW, cardH, 20, cardColor, Color(0, 0, 0));
+                    cardColor = TDT4102::Color(255, 192, 203);
+                window.draw_rounded_rectangle(Point(x, y), cardW, cardH, 20, cardColor, TDT4102::Color(0, 0, 0));
             } else {
-                window.draw_rounded_rectangle(Point(x, y), cardW, cardH, 20, Color(100, 100, 100), Color(0, 0, 0));
+                window.draw_rounded_rectangle(Point(x, y), cardW, cardH, 20, TDT4102::Color(100, 100, 100), TDT4102::Color(0, 0, 0));
             }
         }
     }
@@ -81,8 +81,8 @@ void MemoryGame::drawCards(AnimationWindow &window) {
 
 void MemoryGame::processClick(int mouseX, int mouseY) {
     int margin = 20;
-    int availableWidth = 800 - (gridCols + 1) * margin;  // Antatt vindusbredde (brukes kun for beregning)
-    int availableHeight = 600 - (gridRows + 60);         // Antatt vindushøyde, med plass til feedback
+    int availableWidth = 800 - (gridCols + 1) * margin; // assuming window width 800 (but we recalc in drawCards)
+    int availableHeight = 600 - (gridRows + 1) * margin; // assuming window height 600
     int cardW = availableWidth / gridCols;
     int cardH = availableHeight / gridRows;
     int col = (mouseX - margin) / (cardW + margin);
@@ -96,7 +96,6 @@ void MemoryGame::processClick(int mouseX, int mouseY) {
     selectedIndices.push_back(index);
     if (selectedIndices.size() == 2 && revealTime == 0) {
          revealTime = SDL_GetTicks();
-         attempts++;  // Øk forsøk når to kort er valgt
     }
 }
 
@@ -108,15 +107,8 @@ bool MemoryGame::isGameOver() const {
     return true;
 }
 
-void MemoryGame::drawFeedback(AnimationWindow &window) {
-    std::string feedback;
-    if (isGameOver()) {
-        feedback = "Gratulerer, du klarte det paa " + std::to_string(attempts) + " forsok!";
-    } else {
-        feedback = "Antall forsok: " + std::to_string(attempts);
-    }
-    // Tegn feedback-teksten nederst i vinduet, med litt margin fra bunnen
-    window.draw_text(Point(20, window.height() - 20), feedback, Color(255, 255, 255), 24, Font::arial);
+void MemoryGame::checkMatch() {
+    // Denne funksjonen blir nå ikke brukt, da oppdatering skjer i update()
 }
 
 } // namespace TDT4102
